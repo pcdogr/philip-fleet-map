@@ -212,6 +212,12 @@ filterDirection('all');
 
 // 自动缩放以包含所有船
 const allBounds = L.latLngBounds(markers.map(m => m.getLatLng()));
+// 显示数据刷新时间
+const timeDiv = document.createElement('div');
+timeDiv.style.cssText = 'position:absolute;bottom:80px;left:50%;transform:translateX(-50%);z-index:1000;background:rgba(10,14,23,0.7);backdrop-filter:blur(4px);border-radius:6px;padding:4px 14px;font-size:11px;color:rgba(255,255,255,0.5)';
+timeDiv.innerHTML = '🔄 数据更新: 2026-06-01 07:45 UTC';
+document.body.appendChild(timeDiv);
+
 map.fitBounds(allBounds.pad(0.15));
 </script>
 </body>
