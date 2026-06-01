@@ -3,86 +3,222 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>🚢 Philip Fleet Tracker</title>
+<title>🚢 Philip Fleet — 实时船位图</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: #0a0e17;
-  color: #e0e0e0;
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0a0e17; color: #e0e0e0; }
+#map { height: 100vh; width: 100%; }
+.legend {
+  position: absolute; top: 20px; right: 20px;
+  background: rgba(10, 14, 23, 0.92);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  padding: 16px 20px;
+  z-index: 1000;
+  min-width: 200px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
 }
-.login-container {
-  background: rgba(255,255,255,0.04);
+.legend h3 { font-size: 14px; font-weight: 600; margin-bottom: 10px; color: #fff; letter-spacing: 1px; }
+.legend-item { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; font-size: 13px; cursor: pointer; padding: 4px 8px; border-radius: 6px; transition: background 0.2s; }
+.legend-item:hover { background: rgba(255,255,255,0.06); }
+.legend-item .dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.3); flex-shrink: 0; }
+.dot-cn { background: #ff4757; box-shadow: 0 0 8px rgba(255,71,87,0.4); }
+.dot-sg { background: #2ed573; box-shadow: 0 0 8px rgba(46,213,115,0.4); }
+.dot-other { background: #5f6c80; }
+.legend-item .count { margin-left: auto; color: rgba(255,255,255,0.5); font-size: 12px; }
+.stats-bar {
+  position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+  background: rgba(10, 14, 23, 0.88);
+  backdrop-filter: blur(8px);
   border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 16px;
-  padding: 48px 40px;
-  width: 380px;
-  text-align: center;
-}
-.login-container h1 { font-size: 28px; margin-bottom: 8px; }
-.login-container p { color: rgba(255,255,255,0.5); font-size: 14px; margin-bottom: 32px; }
-.login-container input {
-  width: 100%;
-  padding: 14px 16px;
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.12);
   border-radius: 10px;
-  color: #fff;
-  font-size: 16px;
-  outline: none;
-  transition: border-color 0.2s;
-  margin-bottom: 16px;
+  padding: 10px 24px;
+  z-index: 1000;
+  display: flex;
+  gap: 24px;
+  font-size: 13px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
 }
-.login-container input:focus { border-color: #4a7dff; }
-.login-container input::placeholder { color: rgba(255,255,255,0.3); }
-.login-container button {
-  width: 100%;
-  padding: 14px;
-  background: #4a7dff;
-  border: none;
-  border-radius: 10px;
-  color: #fff;
-  font-size: 16px;
-  font-weight: 600;
+.stats-bar .stat { display: flex; align-items: center; gap: 6px; }
+.stats-bar .num { font-weight: 700; font-size: 15px; }
+.num-cn { color: #ff4757; }
+.num-sg { color: #2ed573; }
+.custom-popup .leaflet-popup-content-wrapper {
+  background: rgba(10, 14, 23, 0.95);
+  backdrop-filter: blur(8px);
+  color: #e0e0e0;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+}
+.custom-popup .leaflet-popup-tip { background: rgba(10, 14, 23, 0.95); }
+.popup-content { padding: 4px; min-width: 280px; }
+.popup-content h2 { font-size: 16px; font-weight: 700; margin-bottom: 8px; color: #fff; }
+.popup-content .row { display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.06); font-size: 13px; }
+.popup-content .row:last-child { border-bottom: none; }
+.popup-content .label { color: rgba(255,255,255,0.5); }
+.popup-content .value { color: #e0e0e0; font-weight: 500; text-align: right; }
+.popup-content .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+.badge-cn { background: rgba(255,71,87,0.25); color: #ff4757; }
+.badge-sg { background: rgba(46,213,115,0.25); color: #2ed573; }
+.badge-other { background: rgba(95,108,128,0.25); color: #8c9cad; }
+.ship-marker {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700;
+  border: 2px solid;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
 }
-.login-container button:hover { background: #3a6ae8; }
-.error { color: #ff4757; font-size: 13px; margin-top: 12px; display: none; }
+.ship-marker:hover { transform: scale(1.3); z-index: 1000 !important; }
+.marker-cn { background: rgba(255,71,87,0.3); border-color: #ff4757; color: #ff4757; }
+.marker-sg { background: rgba(46,213,115,0.3); border-color: #2ed573; color: #2ed573; }
+.marker-other { background: rgba(95,108,128,0.3); border-color: #5f6c80; color: #8c9cad; }
+.leaflet-marker-icon { background: none !important; border: none !important; }
 </style>
 </head>
 <body>
-<div class="login-container">
-  <h1>🚢 Fleet Tracker</h1>
-  <p>Philip 船队追踪系统</p>
-  <input type="password" id="password" placeholder="输入访问密码" autofocus
-         onkeydown="if(event.key==='Enter') login()">
-  <button onclick="login()">进入系统 →</button>
-  <div class="error" id="error">密码错误，请重试</div>
+<div id="map"></div>
+<div class="legend">
+  <h3>🚢 航行方向</h3>
+  <div class="legend-item" id="filter-cn">
+    <span class="dot dot-cn"></span>
+    <span>🇨🇳 中国方向</span>
+    <span class="count" id="count-cn">0</span>
+  </div>
+  <div class="legend-item" id="filter-sg">
+    <span class="dot dot-sg"></span>
+    <span>🇸🇬 新加坡方向</span>
+    <span class="count" id="count-sg">0</span>
+  </div>
+  <div class="legend-item" id="filter-other">
+    <span class="dot dot-other"></span>
+    <span>其他方向</span>
+    <span class="count" id="count-other">0</span>
+  </div>
+  <div class="legend-item" id="filter-all" style="margin-top:8px;border-top:1px solid rgba(255,255,255,0.08);padding-top:8px;">
+    <span>🔓 显示全部</span>
+  </div>
 </div>
-
+<div class="stats-bar">
+  <div class="stat">🚢 实时 <span class="num" id="total-count">0</span></div>
+  <div class="stat">🇨🇳 <span class="num num-cn" id="stat-cn">0</span></div>
+  <div class="stat">🇸🇬 <span class="num num-sg" id="stat-sg">0</span></div>
+</div>
 <script>
-const PASSWORDS = ['philip888', 'ryan888', 'fleet2026'];
+const SHIPS = [{"name": "FLAGSHIP SAGE", "imo": "9471329", "eta": "", "destination": "Guangzhou, China", "owner": "Prime Tanker", "gross_tonnage": "42341", "type": "Chemical/Oil Products Tanker", "flag": "Marshall Islands", "year": "2011", "direction": "china", "lat": 23.08736, "lng": 113.4731, "heading": "303", "speed": "0.0"}, {"name": "GULLWING", "imo": "9595981", "eta": "-", "destination": "Zhoushan, China", "owner": "Evalend", "gross_tonnage": "24195", "type": "Bulk Carrier", "flag": "Malta", "year": "2013", "direction": "china", "lat": 29.79077, "lng": 122.11058, "heading": "224.1", "speed": "2.4"}, {"name": "MOUDROS", "imo": "9952414", "eta": "Jun 01, 00:00", "destination": "XINSHA,CHINA", "owner": "Laskaridis", "gross_tonnage": "44616", "type": "Bulk Carrier", "flag": "Panama", "year": "2022", "direction": "china", "lat": 23.00697, "lng": 113.53144, "heading": "27.8", "speed": "0.0"}, {"name": "NESTOR S", "imo": "9473341", "eta": "Jun 01, 13:00 (in 6 hours)", "destination": "Qidong, China", "owner": "Paloma&Mantinia", "gross_tonnage": "41074", "type": "Bulk Carrier", "flag": "Greece", "year": "2011", "direction": "china", "lat": 24.48408, "lng": 120.35728, "heading": "26", "speed": "10.7"}, {"name": "GRAECIA AETERNA", "imo": "9689835", "eta": "Jun 02, 04:00 (in 21 hours)", "destination": "Dalian, China", "owner": "Angelakos", "gross_tonnage": "43291", "type": "Bulk Carrier", "flag": "Cyprus", "year": "2014", "direction": "china", "lat": 36.24045, "lng": 124.10695, "heading": "332.1", "speed": "12.0"}, {"name": "IONIC KLEOS", "imo": "9470507", "eta": "Jun 07, 07:00 (in 6 days)", "destination": "CN DDG DANDONG", "owner": "ionic", "gross_tonnage": "43013", "type": "Bulk Carrier", "flag": "Marshall Islands", "year": "2014", "direction": "china", "lat": 7.77268, "lng": 109.48807, "heading": "40.5", "speed": "12.3"}, {"name": "EPOS", "imo": "9738210", "eta": "Jun 07, 10:00 (in 6 days)", "destination": "Tianjin Xingang, China", "owner": "Goldenport", "gross_tonnage": "35873", "type": "Bulk Carrier", "flag": "Liberia", "year": "2015", "direction": "china", "lat": 20.1273, "lng": 110.03692, "heading": "90.9", "speed": "9.7"}, {"name": "NAIAS", "imo": "9611254", "eta": "Jun 16, 12:00 (in 15 days)", "destination": "Zhoushan, China", "owner": "Dalnave Navigation", "gross_tonnage": "44133", "type": "Bulk Carrier", "flag": "Cyprus", "year": "2012", "direction": "china", "lat": -26.92654, "lng": 153.97821, "heading": "3.4", "speed": "11.3"}, {"name": "OCEAN HARMONY", "imo": "9726231", "eta": "Jun 20, 13:00 (in 19 days)", "destination": "Qingdao, China", "owner": "OceanStar", "gross_tonnage": "34751", "type": "Bulk Carrier", "flag": "Liberia", "year": "2015", "direction": "china", "lat": -35.1632, "lng": 135.91711, "heading": "259.3", "speed": "10.1"}, {"name": "ASTURA", "imo": "9994838", "eta": "Jun 24, 19:00 (in 23 days)", "destination": "Chiwan, China", "owner": "Evalend", "gross_tonnage": "25859", "type": "Bulk Carrier", "flag": "Liberia", "year": "2024", "direction": "china", "lat": -35.38819, "lng": 19.49413, "heading": "79.8", "speed": "12.4"}, {"name": "PISTI", "imo": "9456367", "eta": "May 12, 03:30", "destination": "Changxindao, China", "owner": "Goldenport", "gross_tonnage": "32983", "type": "Bulk Carrier", "flag": "Liberia", "year": "2011", "direction": "china", "lat": 31.3655, "lng": 121.71333, "heading": "", "speed": "0.0"}, {"name": "OCEANLADY", "imo": "9641364", "eta": "May 20, 07:00", "destination": "Changxindao, China", "owner": "OceanStar", "gross_tonnage": "33049", "type": "Bulk Carrier", "flag": "Liberia", "year": "2013", "direction": "china", "lat": 31.36929, "lng": 121.70069, "heading": "143.3", "speed": "0.1"}, {"name": "PEGASUS", "imo": "9611242", "eta": "May 26, 09:45", "destination": "MACHONG,CHINA", "owner": "Dalnave Navigation", "gross_tonnage": "44133", "type": "Bulk Carrier", "flag": "Cyprus", "year": "2012", "direction": "china", "lat": 21.94815, "lng": 114.00643, "heading": "182.2", "speed": "0.1"}, {"name": "ARCTURUS I", "imo": "9221334", "eta": "May 27, 02:30", "destination": "Shanwei, China", "owner": "Bulkseas", "gross_tonnage": "40008", "type": "Bulk Carrier", "flag": "Marshall Islands", "year": "2001", "direction": "china", "lat": 1.54425, "lng": 119.34836, "heading": "11.2", "speed": "11.2"}, {"name": "AGIOS IOANNIS", "imo": "9244233", "eta": "May 28, 22:00", "destination": "Huangpu, China", "owner": "Ilios", "gross_tonnage": "38938", "type": "Bulk Carrier", "flag": "Cyprus", "year": "2001", "direction": "china", "lat": 21.99692, "lng": 113.98752, "heading": "35.9", "speed": "0.2"}, {"name": "AGIOS KONSTANTINOS", "imo": "9316660", "eta": "May 29, 23:00", "destination": "CN ZOS OPL", "owner": "Ilios", "gross_tonnage": "39736", "type": "Bulk Carrier", "flag": "Cyprus", "year": "2004", "direction": "china", "lat": 29.68273, "lng": 123.02892, "heading": "226", "speed": "0.1"}, {"name": "SOCRATES GRAECIA", "imo": "9843754", "eta": "May 30, 09:30", "destination": "CJK-CNJIJ", "owner": "Angelakos", "gross_tonnage": "44095", "type": "Bulk Carrier", "flag": "Cyprus", "year": "2020", "direction": "china", "lat": 32.07596, "lng": 120.49517, "heading": "18.7", "speed": "0.0"}, {"name": "MEGALOHARI", "imo": "9296066", "eta": "Jul 02, 04:00 (in 31 days)", "destination": "Singapore, Singapore", "owner": "Ilios", "gross_tonnage": "39727", "type": "Bulk Carrier", "flag": "Cyprus", "year": "2004", "direction": "singapore", "lat": -39.51969, "lng": -61.00293, "heading": "109.3", "speed": "9.4"}, {"name": "VILLA GERMANA", "imo": "1067029", "eta": "Jul 05, 11:00 (in 34 days)", "destination": "Singapore, Singapore", "owner": "Laskaridis", "gross_tonnage": "44733", "type": "Bulk Carrier", "flag": "Liberia", "year": "2025", "direction": "singapore", "lat": 8.70095, "lng": -24.13175, "heading": "133.9", "speed": "11.0"}, {"name": "IONIC UNICORN", "imo": "9747429", "eta": "Jun 01, 06:15", "destination": "Singapore, Singapore", "owner": "ionic", "gross_tonnage": "34568", "type": "Bulk Carrier", "flag": "Marshall Islands", "year": "2016", "direction": "singapore", "lat": 1.28659, "lng": 103.98306, "heading": "307.7", "speed": "0.6"}, {"name": "KONSTANTINOS II", "imo": "9595278", "eta": "Jun 02, 14:00 (in 1 day)", "destination": "Singapore, Singapore", "owner": "Paloma&Mantinia", "gross_tonnage": "44289", "type": "Bulk Carrier", "flag": "Liberia", "year": "2013", "direction": "singapore", "lat": 3.78933, "lng": 99.80935, "heading": "144.2", "speed": "12.1"}, {"name": "STENTOR", "imo": "9590785", "eta": "Jun 04, 13:00 (in 3 days)", "destination": "Singapore, Singapore", "owner": "Evalend", "gross_tonnage": "17019", "type": "Bulk Carrier", "flag": "Liberia", "year": "2011", "direction": "singapore", "lat": -15.027, "lng": 145.40735, "heading": "3", "speed": "12.3"}, {"name": "IONIC PATRIS", "imo": "9785366", "eta": "Jun 05, 00:00 (in 4 days)", "destination": "Singapore, Singapore", "owner": "ionic", "gross_tonnage": "45255", "type": "Bulk Carrier", "flag": "Marshall Islands", "year": "2017", "direction": "singapore", "lat": 20.77265, "lng": 116.07739, "heading": "208.5", "speed": "11.8"}, {"name": "TELEMACHUS", "imo": "9721578", "eta": "Jun 06, 08:00 (in 5 days)", "destination": "Singapore, Singapore", "owner": "Paloma&Mantinia", "gross_tonnage": "24785", "type": "Bulk Carrier", "flag": "Marshall Islands", "year": "2016", "direction": "singapore", "lat": 20.65982, "lng": 118.37581, "heading": "209.8", "speed": "13.3"}, {"name": "CETUS", "imo": "9276482", "eta": "Jun 11, 23:00 (in 11 days)", "destination": "SGSING", "owner": "Bulkseas", "gross_tonnage": "39966", "type": "Bulk Carrier", "flag": "Liberia", "year": "2003", "direction": "singapore", "lat": -13.14605, "lng": 46.47448, "heading": "46", "speed": "10.9"}, {"name": "SAN GEORGE", "imo": "9491288", "eta": "Jun 14, 22:00 (in 14 days)", "destination": "Singapore, Singapore", "owner": "Trade Fortune", "gross_tonnage": "43843", "type": "Bulk Carrier", "flag": "Portugal (MAR)", "year": "2011", "direction": "singapore", "lat": -22.44819, "lng": 57.22777, "heading": "63.1", "speed": "9.2"}, {"name": "ODYSSEAS I", "imo": "9595266", "eta": "Jun 15, 10:00 (in 14 days)", "destination": "Singapore, Singapore", "owner": "Paloma&Mantinia", "gross_tonnage": "44289", "type": "Bulk Carrier", "flag": "Cyprus", "year": "2013", "direction": "singapore", "lat": -34.95653, "lng": 23.41407, "heading": "81.6", "speed": "11.2"}, {"name": "OCEAN LEO", "imo": "9258117", "eta": "Jun 19, 10:00 (in 18 days)", "destination": "Singapore, Singapore", "owner": "Bulkseas", "gross_tonnage": "88494", "type": "Bulk Carrier", "flag": "Marshall Islands", "year": "2003", "direction": "singapore", "lat": 33.23609, "lng": 30.29567, "heading": "136", "speed": "10.6"}, {"name": "HISPANIA GRAECA II", "imo": "1060148", "eta": "Jun 20, 12:00 (in 19 days)", "destination": "Singapore, Singapore", "owner": "Angelakos", "gross_tonnage": "44163", "type": "Bulk Carrier", "flag": "Cyprus", "year": "2026", "direction": "singapore", "lat": -34.17239, "lng": 17.07848, "heading": "122.3", "speed": "10.5"}, {"name": "CORONA", "imo": "9391971", "eta": "Jun 26, 20:00 (in 26 days)", "destination": "Singapore, Singapore", "owner": "Bulkseas", "gross_tonnage": "44213", "type": "Bulk Carrier", "flag": "Portugal (MAR)", "year": "2009", "direction": "singapore", "lat": -24.06239, "lng": -46.36091, "heading": "199.2", "speed": "9.2"}, {"name": "MAGNA GRAECIA", "imo": "9841885", "eta": "Jun 28, 12:00 (in 27 days)", "destination": "Singapore, Singapore", "owner": "Angelakos", "gross_tonnage": "44095", "type": "Bulk Carrier", "flag": "Cyprus", "year": "2019", "direction": "singapore", "lat": -35.11608, "lng": -55.50352, "heading": "88.4", "speed": "11.1"}, {"name": "ESTRELLA", "imo": "9767766", "eta": "-", "destination": "Destination not available", "owner": "Navitramp&Novelty", "gross_tonnage": "34274", "type": "Bulk Carrier", "flag": "Marshall Islands", "year": "2016", "direction": "other", "lat": 36.77778, "lng": 122.17256, "heading": "160", "speed": "0.1"}, {"name": "ATLAS", "imo": "9705122", "eta": "-", "destination": "ETA: -", "owner": "Dalnave Navigation", "gross_tonnage": "36317", "type": "Bulk Carrier", "flag": "Cyprus", "year": "2017", "direction": "other", "lat": 6.378, "lng": 108.13051, "heading": "48.4", "speed": "11.1"}, {"name": "RS TARA", "imo": "9765354", "eta": "-", "destination": "ETA: -", "owner": "Prime Tanker", "gross_tonnage": "82779", "type": "Crude Oil Tanker", "flag": "Marshall Islands", "year": "2016", "direction": "other", "lat": 2.32487, "lng": 3.12691, "heading": "215.5", "speed": "12.2"}];
 
-function login() {
-  const pwd = document.getElementById('password').value;
-  if (PASSWORDS.includes(pwd)) {
-    localStorage.setItem('fleet_auth', '1');
-    window.location.href = 'map.html';
-  } else {
-    document.getElementById('error').style.display = 'block';
-    document.getElementById('password').value = '';
-  }
+// 计算航向箭头旋转
+function headingDeg(h) {
+  const n = parseFloat(h);
+  return isNaN(n) ? 0 : n;
 }
 
-// 已认证的直接跳转
-if (localStorage.getItem('fleet_auth') === '1') {
-  window.location.href = 'map.html';
+function speedTxt(s) {
+  const n = parseFloat(s);
+  return isNaN(n) ? '' : ` ${n.toFixed(1)} kn`;
 }
+
+const map = L.map('map', {
+  center: [15, 120],
+  zoom: 3,
+  minZoom: 2,
+  maxBounds: [[-80, -180], [80, 180]]
+});
+
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+  attribution: '&copy; OSM &copy; CARTO',
+  subdomains: 'abcd',
+  maxZoom: 19
+}).addTo(map);
+
+const markers = [];
+const markerLayers = { china: [], singapore: [], other: [] };
+
+for (const s of SHIPS) {
+  if (!s.lat || !s.lng) continue;
+  const lat = s.lat, lng = s.lng;
+  const dir = s.direction;
+  const cls = dir === 'china' ? 'marker-cn' : dir === 'singapore' ? 'marker-sg' : 'marker-other';
+  const bdg = dir === 'china' ? 'badge-cn' : dir === 'singapore' ? 'badge-sg' : 'badge-other';
+  const label = dir === 'china' ? '🇨🇳' : dir === 'singapore' ? '🇸🇬' : '🌍';
+  const hdg = headingDeg(s.heading);
+  const spd = speedTxt(s.speed);
+
+  const dirStr = dir === 'china' ? '🇨🇳 中国' : dir === 'singapore' ? '🇸🇬 新加坡' : '🌍 其他';
+
+  let popupHtml = `
+    <div class="popup-content">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <h2>🚢 ${s.name}</h2>
+        <span class="badge ${bdg}">${dirStr}</span>
+      </div>
+      <div class="row"><span class="label">IMO</span><span class="value">${s.imo}</span></div>
+      <div class="row"><span class="label">当前位置</span><span class="value">${lat.toFixed(4)}, ${lng.toFixed(4)}</span></div>
+      <div class="row"><span class="label">航速/航向</span><span class="value">${spd || 'N/A'} ${hdg ? '| ' + hdg + '°' : ''}</span></div>
+      <div class="row"><span class="label">目的港</span><span class="value">${s.destination ? s.destination.split(',')[0].substring(0, 30) : 'N/A'}</span></div>
+      <div class="row"><span class="label">船东</span><span class="value">${s.owner}</span></div>
+      <div class="row"><span class="label">类型</span><span class="value">${s.type || 'N/A'}</span></div>
+      <div class="row"><span class="label">总吨</span><span class="value">${s.gross_tonnage || 'N/A'}</span></div>
+      <div class="row"><span class="label">船旗/年份</span><span class="value">${s.flag || 'N/A'} · ${s.year || 'N/A'}</span></div>
+      <div class="row"><span class="label">ETA</span><span class="value">${s.eta || 'N/A'}</span></div>
+    </div>`;
+
+  const icon = L.divIcon({
+    className: '',
+    html: `<div class="ship-marker ${cls}">${label}</div>`,
+    iconSize: [40, 40],
+    iconAnchor: [20, 20],
+    popupAnchor: [0, -24]
+  });
+
+  const m = L.marker([lat, lng], { icon }).addTo(map).bindPopup(popupHtml, { className: 'custom-popup', maxWidth: 360 });
+  markers.push(m);
+  markerLayers[dir].push(m);
+}
+
+document.getElementById('count-cn').textContent = markerLayers.china.length;
+document.getElementById('count-sg').textContent = markerLayers.singapore.length;
+document.getElementById('count-other').textContent = markerLayers.other.length;
+document.getElementById('total-count').textContent = markers.length;
+document.getElementById('stat-cn').textContent = markerLayers.china.length;
+document.getElementById('stat-sg').textContent = markerLayers.singapore.length;
+
+let currentFilter = 'all';
+function filterDirection(dir) {
+  for (const m of markers) map.removeLayer(m);
+  if (dir === 'all') { for (const m of markers) map.addLayer(m); return; }
+  for (const m of markerLayers[dir]) map.addLayer(m);
+}
+document.getElementById('filter-cn').onclick = () => {
+  if (currentFilter === 'china') { currentFilter = 'all'; filterDirection('all'); }
+  else { currentFilter = 'china'; filterDirection('china'); }
+};
+document.getElementById('filter-sg').onclick = () => {
+  if (currentFilter === 'singapore') { currentFilter = 'all'; filterDirection('all'); }
+  else { currentFilter = 'singapore'; filterDirection('singapore'); }
+};
+document.getElementById('filter-other').onclick = () => {
+  if (currentFilter === 'other') { currentFilter = 'all'; filterDirection('all'); }
+  else { currentFilter = 'other'; filterDirection('other'); }
+};
+document.getElementById('filter-all').onclick = () => { currentFilter = 'all'; filterDirection('all'); };
+filterDirection('all');
+
+// 自动缩放以包含所有船
+const allBounds = L.latLngBounds(markers.map(m => m.getLatLng()));
+// 显示数据刷新时间
+const timeDiv = document.createElement('div');
+timeDiv.style.cssText = 'position:absolute;bottom:80px;left:50%;transform:translateX(-50%);z-index:1000;background:rgba(10,14,23,0.7);backdrop-filter:blur(4px);border-radius:6px;padding:4px 14px;font-size:11px;color:rgba(255,255,255,0.5)';
+timeDiv.innerHTML = '🔄 数据更新: 2026-06-01 07:45 UTC';
+document.body.appendChild(timeDiv);
+
+map.fitBounds(allBounds.pad(0.15));
 </script>
 </body>
 </html>
