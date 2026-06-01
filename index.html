@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🚢 Philip Fleet Tracker</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #0a0e17;
+  color: #e0e0e0;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.login-container {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  padding: 48px 40px;
+  width: 380px;
+  text-align: center;
+}
+.login-container h1 { font-size: 28px; margin-bottom: 8px; }
+.login-container p { color: rgba(255,255,255,0.5); font-size: 14px; margin-bottom: 32px; }
+.login-container input {
+  width: 100%;
+  padding: 14px 16px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 10px;
+  color: #fff;
+  font-size: 16px;
+  outline: none;
+  transition: border-color 0.2s;
+  margin-bottom: 16px;
+}
+.login-container input:focus { border-color: #4a7dff; }
+.login-container input::placeholder { color: rgba(255,255,255,0.3); }
+.login-container button {
+  width: 100%;
+  padding: 14px;
+  background: #4a7dff;
+  border: none;
+  border-radius: 10px;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.login-container button:hover { background: #3a6ae8; }
+.error { color: #ff4757; font-size: 13px; margin-top: 12px; display: none; }
+</style>
+</head>
+<body>
+<div class="login-container">
+  <h1>🚢 Fleet Tracker</h1>
+  <p>Philip 船队追踪系统</p>
+  <input type="password" id="password" placeholder="输入访问密码" autofocus
+         onkeydown="if(event.key==='Enter') login()">
+  <button onclick="login()">进入系统 →</button>
+  <div class="error" id="error">密码错误，请重试</div>
+</div>
+<script>
+const PASSWORDS = ['pcdogr2026'];
+function login() {
+  const pwd = document.getElementById('password').value;
+  if (PASSWORDS.includes(pwd)) {
+    localStorage.setItem('fleet_auth', '1');
+    window.location.href = 'map.html';
+  } else {
+    document.getElementById('error').style.display = 'block';
+    document.getElementById('password').value = '';
+  }
+}
+if (localStorage.getItem('fleet_auth') === '1') {
+  window.location.href = 'map.html';
+}
+</script>
+</body>
+</html>
