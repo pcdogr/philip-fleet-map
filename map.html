@@ -3848,7 +3848,17 @@ const OWNER_DISPLAY = CFG.ownerCn;
 
 const map = L.map('map', {center:[15,120],zoom:3,minZoom:2,maxBounds:[[-80,-180],[80,180]]});
 L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-  {attribution:'&copy; OSM &copy; CARTO',subdomains:'abcd',maxZoom:19}).addTo(map);
+  {attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',subdomains:'abcd',maxZoom:19}).addTo(map);
+setTimeout(function(){
+  var tilesLoaded=false;
+  map.on('tileload',function(){tilesLoaded=true;});
+  setTimeout(function(){
+    if(!tilesLoaded){
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        {attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>',maxZoom:19,opacity:0.85}).addTo(map);
+    }
+  },4000);
+},500);
 
 let activeOwner = null;
 let activeDir = 'all';
@@ -3940,6 +3950,6 @@ applyFilter();
 
 const td=document.createElement('div');
 td.style.cssText='position:absolute;bottom:80px;left:50%;transform:translateX(-50%);z-index:1000;background:rgba(10,14,23,0.7);backdrop-filter:blur(4px);border-radius:6px;padding:4px 14px;font-size:11px;color:rgba(255,255,255,0.5)';
-td.textContent='🔄 数据更新: 2026-06-15 05:18:02 UTC</script>
+td.textContent='🔄 数据更新: 2026-06-15 05:18:13 UTC</script>
 </body>
 </html>
