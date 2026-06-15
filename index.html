@@ -127,8 +127,19 @@ function initMap(){
 }
 
 // Fallback: if Leaflet script errors, try alternative CDN
-var leafletLoaded = false;
-if(typeof L !== 'undefined') leafletLoaded = true;
+// Leaflet 加载失败自动切到备用CDN
+if(typeof L === 'undefined') {
+  // Load from backup CDN
+  var backupScript = document.createElement('script');
+  backupScript.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+  backupScript.onload = function() { setTimeout(initMap, 100); };
+  document.head.appendChild(backupScript);
+  // Also add CSS backup
+  var backupCss = document.createElement('link');
+  backupCss.rel = 'stylesheet';
+  backupCss.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+  document.head.appendChild(backupCss);
+}
 
 </script>
 </body>
