@@ -721,6 +721,36 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 </style>
 </head>
 <body>
+
+<div id="loginOverlay" style="position:fixed;top:0;left:0;width:100%;height:100%;z-index:9999;background:#0a0e17;display:flex;align-items:center;justify-content:center;">
+<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:48px 40px;width:90%;max-width:380px;text-align:center;">
+<h1 style="font-size:28px;color:#fff;margin-bottom:8px;">🚢 Fleet Tracker</h1>
+<p style="color:rgba(255,255,255,0.5);font-size:14px;margin-bottom:32px;">Philip 船队追踪系统</p>
+<input type="password" id="pw" placeholder="输入访问密码" autofocus
+       style="width:100%;padding:14px 16px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:10px;color:#fff;font-size:16px;outline:none;margin-bottom:16px;box-sizing:border-box;">
+<button onclick="checkPw()" style="width:100%;padding:14px;background:#4a7dff;border:none;border-radius:10px;color:#fff;font-size:16px;font-weight:600;cursor:pointer;">进入系统 →</button>
+<div id="pwErr" style="color:#ff4757;font-size:13px;margin-top:12px;display:none;">密码错误，请重试</div>
+</div></div>
+<script>
+function checkPw(){
+  var p=document.getElementById("pw").value;
+  if(p==="pcdogr2026"){
+    document.getElementById("loginOverlay").style.display="none";
+    // Force map resize after login
+    if(typeof map !== "undefined" && map) setTimeout(function(){map.invalidateSize();}, 100);
+    try{localStorage.setItem("fleet_auth","1");}catch(e){}
+  } else {
+    document.getElementById("pwErr").style.display="block";
+    document.getElementById("pw").value="";
+  }
+}
+// Auto-login check
+try{if(localStorage.getItem("fleet_auth")==="1") {
+  document.getElementById("loginOverlay").style.display="none";
+  setTimeout(function(){if(typeof map !== "undefined") map.invalidateSize();}, 200);
+}}catch(e){}
+</script>
+
 <div id="map"></div>
 
 <div class="owner-panel" id="ownerPanel">
@@ -3937,6 +3967,7 @@ document.getElementById('dir-other').onclick=function(){activeDir='other';applyF
 
 renderOwners();
 applyFilter();
+setTimeout(function(){if(typeof map !== "undefined") try{map.invalidateSize();}catch(e){}}, 300);
 
 const td=document.createElement('div');
 td.style.cssText='position:absolute;bottom:80px;left:50%;transform:translateX(-50%);z-index:1000;background:rgba(10,14,23,0.7);backdrop-filter:blur(4px);border-radius:6px;padding:4px 14px;font-size:11px;color:rgba(255,255,255,0.5)';
